@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
 
     const { data: claimed, error: rpcError } = await supabaseAdmin.rpc('claim_job', {
       p_job_id: job_id,
-      p_tech_id: tech_id,
+      p_line_user_id: tech_id,
     });
 
     if (rpcError) {

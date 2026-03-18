@@ -5,7 +5,7 @@ CREATE TYPE user_role AS ENUM ('admin', 'manager', 'technician');
 CREATE TYPE job_status AS ENUM ('OPEN', 'ASSIGNED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED');
 
 CREATE TABLE profiles (
-  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   line_user_id TEXT UNIQUE,
   name TEXT NOT NULL,
   phone TEXT,
@@ -129,19 +129,26 @@ CREATE TRIGGER set_jobs_updated_at
 
 CREATE OR REPLACE FUNCTION claim_job(
   p_job_id UUID,
-  p_tech_id UUID
+  p_line_user_id TEXT
 )
 RETURNS BOOLEAN
 LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
 DECLARE
+  v_tech_id UUID;
   v_rows_updated INTEGER;
 BEGIN
+  SELECT id INTO v_tech_id FROM profiles WHERE line_user_id = p_line_user_id;
+
+  IF v_tech_id IS NULL THEN
+    RETURN FALSE;
+  END IF;
+
   UPDATE jobs
   SET
     status = 'ASSIGNED',
-    assigned_technician_id = p_tech_id,
+    assigned_technician_id = v_tech_id,
     updated_at = NOW()
   WHERE
     id = p_job_id
@@ -152,7 +159,7 @@ BEGIN
 
   IF v_rows_updated = 1 THEN
     INSERT INTO job_logs (job_id, changed_by, status_changed_to)
-    VALUES (p_job_id, p_tech_id, 'ASSIGNED');
+    VALUES (p_job_id, v_tech_id, 'ASSIGNED');
     RETURN TRUE;
   ELSE
     RETURN FALSE;

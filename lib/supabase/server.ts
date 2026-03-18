@@ -7,7 +7,9 @@ export function getSupabaseAdmin(): SupabaseClient {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
     if (!url || !key) {
-      throw new Error('Supabase env vars (NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY) are not set');
+      const msg = 'Supabase backend env vars are missing. Check NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in Vercel settings.';
+      console.error(msg);
+      throw new Error(msg);
     }
     _admin = createClient(url, key, {
       auth: { autoRefreshToken: false, persistSession: false },

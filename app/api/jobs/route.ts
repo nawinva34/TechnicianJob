@@ -31,8 +31,9 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({ jobs: data });
-  } catch (err) {
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  } catch (err: any) {
+    console.error('[GET /api/jobs] Error:', err);
+    return NextResponse.json({ error: err.message || 'Internal server error' }, { status: 500 });
   }
 }
 

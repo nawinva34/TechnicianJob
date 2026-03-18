@@ -1,7 +1,7 @@
 
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
-CREATE TYPE user_role AS ENUM ('admin', 'manager', 'technician');
+CREATE TYPE user_role AS ENUM ('superadmin', 'admin', 'technician');
 CREATE TYPE job_status AS ENUM ('OPEN', 'ASSIGNED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED');
 
 CREATE TABLE profiles (

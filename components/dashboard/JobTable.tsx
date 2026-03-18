@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { Job, JobStatus } from '@/lib/types';
 import { supabaseClient } from '@/lib/supabase/client';
 import { JobStatusBadge, STATUS_CONFIG } from './JobStatusBadge';
+import { useLIFF } from '../liff/LIFFProvider';
 import { format } from 'date-fns';
 import {
   MapPin,
@@ -14,6 +15,7 @@ import {
   DollarSign,
   ChevronDown,
   Loader2,
+  CheckCircle2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -22,15 +24,19 @@ type SortDir = 'asc' | 'desc';
 
 interface JobTableProps {
   onStatsChange?: (stats: Record<JobStatus, number>) => void;
+  userRole?: 'superadmin' | 'admin' | 'technician';
 }
 
-export function JobTable({ onStatsChange }: JobTableProps) {
+export function JobTable({ onStatsChange, userRole = 'admin' }: JobTableProps) {
+  const { profile } = useLIFF();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState<JobStatus | 'ALL'>('ALL');
   const [sortField, setSortField] = useState<SortField>('created_at');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [claimingId, setClaimingId] = useState<string | null>(null);
+  const [claimLoading, setClaimLoading] = useState(false);
 
   const fetchJobs = useCallback(async () => {
     setLoading(true);
@@ -46,6 +52,32 @@ export function JobTable({ onStatsChange }: JobTableProps) {
     onStatsChange?.(stats);
     setLoading(false);
   }, [onStatsChange]);
+
+  const handleClaimJob = async () => {
+    if (!claimingId) return;
+    setClaimLoading(true);
+    try {
+      const res = await fetch('/api/jobs/claim', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          job_id: claimingId, 
+          tech_id: profile?.userId || 'DEMO_TECH_ID' 
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setClaimingId(null);
+        fetchJobs();
+      } else {
+        alert(data.message);
+      }
+    } catch (err) {
+      alert('Failed to claim job');
+    } finally {
+      setClaimLoading(false);
+    }
+  };
 
   useEffect(() => {
     fetchJobs();
@@ -147,19 +179,20 @@ export function JobTable({ onStatsChange }: JobTableProps) {
                   <ChevronDown className={cn('w-3.5 h-3.5 transition-transform', sortField === 'created_at' && sortDir === 'asc' && 'rotate-180')} />
                 </div>
               </th>
+              {userRole === 'technician' && <th className="px-4 py-3 text-right">แอคชั่น</th>}
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
             {loading ? (
               <tr>
-                <td colSpan={6} className="py-16 text-center">
+                <td colSpan={userRole === 'technician' ? 7 : 6} className="py-16 text-center">
                   <Loader2 className="w-6 h-6 animate-spin mx-auto text-blue-500" />
                   <p className="text-gray-400 mt-2 text-sm">กำลังโหลดข้อมูล…</p>
                 </td>
               </tr>
             ) : displayed.length === 0 ? (
               <tr>
-                <td colSpan={6} className="py-16 text-center text-gray-400">
+                <td colSpan={userRole === 'technician' ? 7 : 6} className="py-16 text-center text-gray-400">
                   <p className="text-3xl mb-2">📋</p>
                   <p className="font-medium">ไม่พบงาน</p>
                   <p className="text-xs mt-1">สร้างงานใหม่เพื่อเริ่มต้นใช้งาน</p>
@@ -234,6 +267,21 @@ export function JobTable({ onStatsChange }: JobTableProps) {
                   <td className="px-4 py-3 text-gray-400 text-xs whitespace-nowrap">
                     {format(new Date(job.created_at), 'dd MMM yy HH:mm')}
                   </td>
+                  {userRole === 'technician' && (
+                    <td className="px-4 py-3 text-right">
+                      {job.status === 'OPEN' && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setClaimingId(job.id);
+                          }}
+                          className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-colors"
+                        >
+                          รับงาน
+                        </button>
+                      )}
+                    </td>
+                  )}
                 </tr>
               ))
             )}
@@ -283,23 +331,83 @@ export function JobTable({ onStatsChange }: JobTableProps) {
                   </span>
                 )}
               </div>
-              <p className="text-xs text-gray-400 mt-2">
-                {format(new Date(job.created_at), 'dd MMM yyyy HH:mm')}
-              </p>
-              {expandedId === job.id && job.description && (
-                <p className="mt-2 text-sm text-gray-600 bg-gray-50 rounded-lg p-3">
-                  {job.description}
+              
+              <div className="mt-3 flex items-center justify-between gap-4">
+                 <p className="text-[10px] text-gray-400">
+                  {format(new Date(job.created_at), 'dd MMM yy HH:mm')}
                 </p>
+                {userRole === 'technician' && job.status === 'OPEN' && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setClaimingId(job.id);
+                    }}
+                    className="flex-shrink-0 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2 rounded-xl shadow-sm transition-colors"
+                  >
+                    รับงานนี้
+                  </button>
+                )}
+              </div>
+
+              {expandedId === job.id && (
+                <div className="mt-4 pt-4 border-t border-gray-100 space-y-3">
+                  {job.description && (
+                    <div>
+                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">รายละเอียด</p>
+                      <p className="text-sm text-gray-600 leading-relaxed">{job.description}</p>
+                    </div>
+                  )}
+                  {job.assigned_technician && (
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center">
+                        <User className="w-3 h-3 text-blue-600" />
+                      </div>
+                      <span className="text-xs text-gray-600 font-medium">{job.assigned_technician.name}</span>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           ))
         )}
       </div>
 
-      <div className="px-4 py-3 border-t border-gray-100 bg-gray-50 text-xs text-gray-400">
-        แสดง {displayed.length} รายการ
+      {claimingId && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <CheckCircle2 className="w-8 h-8 text-blue-600" />
+            </div>
+            <h3 className="text-xl font-extrabold text-gray-900 text-center mb-2">ยืนยันการรับงาน</h3>
+            <p className="text-gray-500 text-center text-sm mb-6">
+              คุณต้องการรับงาน <span className="font-bold text-gray-800">"{jobs.find(j => j.id === claimingId)?.title}"</span> ใช่หรือไม่?
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setClaimingId(null)}
+                className="flex-1 py-3 rounded-2xl text-sm font-bold text-gray-500 hover:bg-gray-100 transition-colors"
+              >
+                ยกเลิก
+              </button>
+              <button
+                onClick={handleClaimJob}
+                disabled={claimLoading}
+                className="flex-1 py-3 rounded-2xl text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 transition-colors flex items-center justify-center gap-2"
+              >
+                {claimLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'ยืนยัน'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="px-4 py-3 border-t border-gray-100 bg-gray-50 text-[10px] sm:text-xs text-gray-400 flex justify-between items-center">
+        <span>แสดง {displayed.length} รายการ</span>
         {!loading && (
-          <span className="ml-2">• อัปเดตข้อมูลแบบเรียลไทม์เชื่อมต่อแล้ว</span>
+          <span className="flex items-center gap-1">
+            <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+            เรียลไทม์เชื่อมต่อแล้ว
+          </span>
         )}
       </div>
     </div>

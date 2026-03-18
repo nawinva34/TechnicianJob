@@ -1,5 +1,5 @@
 
-export type UserRole = 'admin' | 'manager' | 'technician';
+export type UserRole = 'superadmin' | 'admin' | 'technician';
 
 export type JobStatus = 'OPEN' | 'ASSIGNED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
 

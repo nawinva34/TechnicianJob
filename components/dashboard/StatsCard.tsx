@@ -48,19 +48,19 @@ export function StatsCard({ title, value, icon: Icon, color, description }: Stat
   return (
     <div
       className={cn(
-        'rounded-2xl border p-5 flex items-start gap-4 transition-all hover:shadow-md',
+        'rounded-2xl border p-3 sm:p-5 flex items-center sm:items-start gap-3 sm:gap-4 transition-all hover:shadow-md',
         c.bg,
         c.border
       )}
     >
-      <div className={cn('p-2.5 rounded-xl flex-shrink-0', c.icon)}>
-        <Icon className="w-5 h-5" />
+      <div className={cn('p-2 sm:p-2.5 rounded-xl flex-shrink-0', c.icon)}>
+        <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
       </div>
-      <div>
-        <p className="text-sm text-gray-500 font-medium">{title}</p>
-        <p className={cn('text-3xl font-bold mt-0.5', c.value)}>{value}</p>
+      <div className="min-w-0">
+        <p className="text-[10px] sm:text-sm text-gray-500 font-medium uppercase tracking-wider sm:normal-case">{title}</p>
+        <p className={cn('text-xl sm:text-3xl font-bold mt-0.5', c.value)}>{value}</p>
         {description && (
-          <p className="text-xs text-gray-400 mt-1">{description}</p>
+          <p className="text-[10px] sm:text-xs text-gray-400 mt-1 truncate hidden sm:block">{description}</p>
         )}
       </div>
     </div>

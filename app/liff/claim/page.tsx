@@ -58,7 +58,7 @@ function ClaimContent() {
 
   useEffect(() => {
     if (!jobId) return;
-    fetch(`/api/jobs?status=OPEN`)
+    fetch(`/api/jobs`)
       .then((r) => r.json())
       .then((data) => {
         const found = data.jobs?.find((j: Job) => j.id === jobId);
@@ -236,13 +236,18 @@ function ClaimContent() {
 
         <button
           onClick={handleClaim}
-          disabled={claiming || !techId || techHasProfile === false}
+          disabled={claiming || !techId || techHasProfile === false || job.status !== 'OPEN'}
           className="w-full py-3.5 rounded-2xl text-base font-bold text-white bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:text-gray-500 transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-200"
         >
           {claiming ? (
             <>
               <Loader2 className="w-5 h-5 animate-spin" />
               กำลังดำเนินการ…
+            </>
+          ) : job.status !== 'OPEN' ? (
+            <>
+              <XCircle className="w-5 h-5" />
+              งานนี้ถูกรับไปแล้ว
             </>
           ) : (
             <>

@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
       job_id: job.id,
       changed_by: created_by || null,
       status_changed_to: 'OPEN',
-      note: 'Job created',
+      notes: 'Job created',
     });
 
     const flexMessage = buildJobFlexMessage(job);

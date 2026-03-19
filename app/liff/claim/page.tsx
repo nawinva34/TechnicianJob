@@ -40,9 +40,21 @@ function ClaimContent() {
 
   const [job, setJob] = useState<Job | null>(null);
   const [loadingJob, setLoadingJob] = useState(true);
+  const [techHasProfile, setTechHasProfile] = useState<boolean | null>(null);
   const [claiming, setClaiming] = useState(false);
   const [result, setResult] = useState<ClaimJobResponse | null>(null);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (techId) {
+      fetch(`/api/technician/profile?line_user_id=${techId}`)
+        .then((r) => r.json())
+        .then((data) => {
+          setTechHasProfile(!!data.profile);
+        })
+        .catch(() => setTechHasProfile(false));
+    }
+  }, [techId]);
 
   useEffect(() => {
     if (!jobId) return;
@@ -93,12 +105,12 @@ function ClaimContent() {
     );
   }
 
-  if (loadingJob || liffLoading) {
+  if (loadingJob || liffLoading || (techId && techHasProfile === null)) {
     return (
       <PageWrapper>
         <div className="text-center py-12">
           <Loader2 className="w-8 h-8 text-blue-500 animate-spin mx-auto mb-3" />
-          <p className="text-gray-500">กำลังโหลดข้อมูลงาน…</p>
+          <p className="text-gray-500">กำลังโหลดข้อมูล…</p>
         </div>
       </PageWrapper>
     );
@@ -206,15 +218,25 @@ function ClaimContent() {
           </div>
         )}
 
-        {!techId && (
+        {!techId ? (
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-sm text-amber-700">
             ⚠️ กรุณาเปิดลิงก์นี้จากแอปพลิเคชัน LINE เพื่อยืนยันตัวตนก่อนการกดรับงาน
           </div>
-        )}
+        ) : techHasProfile === false ? (
+          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-center">
+            <p className="text-sm font-semibold text-blue-800 mb-2">คุณยังไม่ได้ลงทะเบียนเป็นช่าง</p>
+            <a
+              href={`/liff/register?returnUrl=/liff/claim?job_id=${jobId}`}
+              className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg text-sm transition-colors"
+            >
+              ลงทะเบียนช่างเทคนิค
+            </a>
+          </div>
+        ) : null}
 
         <button
           onClick={handleClaim}
-          disabled={claiming || !techId}
+          disabled={claiming || !techId || techHasProfile === false}
           className="w-full py-3.5 rounded-2xl text-base font-bold text-white bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:text-gray-500 transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-200"
         >
           {claiming ? (

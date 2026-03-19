@@ -31,30 +31,21 @@ function ProfileContent() {
   const [dbProfile, setDbProfile] = useState<Profile | null>(null);
   const [myJobs, setMyJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
-  const [registering, setRegistering] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  // Form State
-  const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [skills, setSkills] = useState('');
 
   const fetchData = useCallback(async (lineId: string) => {
     try {
-      // Fetch Profile
       const pRes = await fetch(`/api/technician/profile?line_user_id=${lineId}`);
       const pData = await pRes.json();
       
       if (pData.profile) {
         setDbProfile(pData.profile);
-        // Fetch My Jobs
         const jRes = await fetch(`/api/jobs`);
         const jData = await jRes.json();
         const filtered = (jData.jobs ?? []).filter((j: Job) => j.assigned_technician_id === pData.profile.id);
         setMyJobs(filtered);
       } else {
-        // Pre-fill from LIFF
-        setName(liffProfile?.displayName || '');
+        window.location.href = '/liff/register?returnUrl=/liff/profile';
       }
     } catch (err) {
       console.error(err);
@@ -72,36 +63,7 @@ function ProfileContent() {
     }
   }, [liffProfile, liffLoading, fetchData]);
 
-  const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!liffProfile?.userId) return;
-
-    setRegistering(true);
-    try {
-      const res = await fetch('/api/technician/profile', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          line_user_id: liffProfile.userId,
-          name,
-          phone,
-          skills: skills.split(',').map(s => s.trim()).filter(Boolean),
-          avatar_url: liffProfile.pictureUrl,
-        }),
-      });
-
-      const data = await res.json();
-      if (data.profile) {
-        setDbProfile(data.profile);
-      } else {
-        setError(data.error || 'Registration failed');
-      }
-    } catch (err) {
-      setError('An error occurred during registration');
-    } finally {
-      setRegistering(false);
-    }
-  };
+  // Removed handleRegister since it's now explicitly in /liff/register
 
   if (liffLoading || loading) return <LoadingState />;
 
@@ -116,56 +78,9 @@ function ProfileContent() {
   return (
     <PageWrapper>
       {!dbProfile ? (
-        <div className="space-y-6">
-          <div className="text-center">
-            <div className="w-20 h-20 mx-auto rounded-full overflow-hidden border-4 border-white shadow-lg mb-4">
-              <img src={liffProfile.pictureUrl || '/api/placeholder/80/80'} alt="Profile" className="w-full h-full object-cover" />
-            </div>
-            <h1 className="text-2xl font-extrabold text-gray-900">ลงทะเบียนช่างเทคนิค</h1>
-            <p className="text-gray-500 text-sm mt-1">กรอกข้อมูลเพื่อเริ่มต้นรับงานในระบบ</p>
-          </div>
-
-          <form onSubmit={handleRegister} className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 space-y-4">
-            <div>
-              <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5 ml-1">ชื่อ-นามสกุล</label>
-              <input
-                required
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full px-4 py-3 rounded-2xl bg-gray-50 border-none focus:ring-2 focus:ring-blue-500 transition-all"
-                placeholder="ระบุชื่อของคุณ"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5 ml-1">เบอร์โทรศัพท์</label>
-              <input
-                required
-                type="tel"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                className="w-full px-4 py-3 rounded-2xl bg-gray-50 border-none focus:ring-2 focus:ring-blue-500 transition-all"
-                placeholder="08X-XXXXXXX"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5 ml-1">ทักษะ/ความชำนาญ (แยกด้วยจุลภาค ,)</label>
-              <input
-                value={skills}
-                onChange={(e) => setSkills(e.target.value)}
-                className="w-full px-4 py-3 rounded-2xl bg-gray-50 border-none focus:ring-2 focus:ring-blue-500 transition-all"
-                placeholder="เช่น ไฟฟ้า, ประปา, ล้างแอร์"
-              />
-            </div>
-
-            {error && <p className="text-red-500 text-xs text-center">{error}</p>}
-
-            <button
-              disabled={registering}
-              className="w-full py-4 rounded-2xl bg-blue-600 text-white font-bold shadow-lg shadow-blue-200 hover:bg-blue-700 active:scale-95 transition-all flex items-center justify-center gap-2"
-            >
-              {registering ? <Loader2 className="w-5 h-5 animate-spin" /> : 'ลงทะเบียน'}
-            </button>
-          </form>
+        <div className="space-y-6 text-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto text-blue-500" />
+          <p className="text-gray-500 text-sm">กำลังพาดำเนินการลงทะเบียน...</p>
         </div>
       ) : (
         <div className="space-y-6">

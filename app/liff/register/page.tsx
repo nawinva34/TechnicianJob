@@ -32,7 +32,24 @@ function RegisterContent() {
 
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
-  const [skills, setSkills] = useState('');
+  const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
+
+  const AVAILABLE_SKILLS = [
+    'ช่างแอร์',
+    'ช่างไฟฟ้า',
+    'ช่างประปา',
+    'ช่างทาสี',
+    'ช่างไม้',
+    'ช่างปูน',
+    'ช่างซ่อมเครื่องใช้ไฟฟ้า',
+    'อื่นๆ',
+  ];
+
+  const handleToggleSkill = (skill: string) => {
+    setSelectedSkills((prev) =>
+      prev.includes(skill) ? prev.filter((s) => s !== skill) : [...prev, skill]
+    );
+  };
 
   useEffect(() => {
     async function checkProfile() {
@@ -65,6 +82,16 @@ function RegisterContent() {
     e.preventDefault();
     if (!liffProfile?.userId) return;
 
+    if (phone.length < 10) {
+      setError('กรุณากรอกเบอร์โทรศัพท์ให้ครบ 10 หลัก');
+      return;
+    }
+
+    if (selectedSkills.length === 0) {
+      setError('กรุณาเลือกทักษะอย่างน้อย 1 รายการ');
+      return;
+    }
+
     setRegistering(true);
     setError(null);
     try {
@@ -75,7 +102,7 @@ function RegisterContent() {
           line_user_id: liffProfile.userId,
           name,
           phone,
-          skills: skills.split(',').map(s => s.trim()).filter(Boolean),
+          skills: selectedSkills,
           avatar_url: liffProfile.pictureUrl,
         }),
       });
@@ -129,27 +156,42 @@ function RegisterContent() {
             />
           </div>
           <div>
-            <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 ml-1">เบอร์โทรศัพท์ติดต่อ</label>
+            <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 ml-1">เบอร์โทรศัพท์ติดต่อ (10 หลัก)</label>
             <input
               required
               type="tel"
+              pattern="[0-9]{10}"
               value={phone}
-              onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
+              onChange={(e) => setPhone(e.target.value.replace(/[^0-9]/g, '').slice(0, 10))}
               maxLength={10}
               className="w-full px-5 py-3.5 rounded-2xl bg-gray-50/50 border border-gray-100 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all font-medium text-gray-900"
               placeholder="08X-XXXXXXX"
             />
           </div>
           <div>
-            <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 ml-1">ทักษะความชำนาญ</label>
-            <input
-              required
-              value={skills}
-              onChange={(e) => setSkills(e.target.value)}
-              className="w-full px-5 py-3.5 rounded-2xl bg-gray-50/50 border border-gray-100 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all font-medium text-gray-900 text-sm"
-              placeholder="เช่น ไฟฟ้า, ประปา, แอร์ (คั่นด้วยลูกน้ำ)"
-            />
-            <p className="text-[10px] text-gray-400 mt-2 ml-1">ระบุทักษะของคุณเพื่อให้เราสามารถจับคู่งานได้ตรงใจ</p>
+            <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 ml-1">เลือกทักษะความชำนาญ (เลือกได้หลายข้อ)</label>
+            <div className="flex flex-wrap gap-2">
+              {AVAILABLE_SKILLS.map((skill) => {
+                const isSelected = selectedSkills.includes(skill);
+                return (
+                  <button
+                    key={skill}
+                    type="button"
+                    onClick={() => handleToggleSkill(skill)}
+                    className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all border ${
+                      isSelected
+                        ? 'bg-blue-600 border-blue-600 text-white shadow-md shadow-blue-500/20'
+                        : 'bg-gray-50/50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:border-gray-300'
+                    }`}
+                  >
+                    {skill}
+                  </button>
+                );
+              })}
+            </div>
+            {selectedSkills.length === 0 && (
+               <p className="text-[10px] text-amber-500 mt-2 ml-1 font-semibold">* กรุณาเลือกอย่างน้อย 1 ทักษะ</p>
+            )}
           </div>
 
           {error && (
